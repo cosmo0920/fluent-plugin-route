@@ -26,8 +26,8 @@ module Fluent::Plugin
     class Route
       include Fluent::Configurable
 
-      config_param :remove_tag_prefix, :string, :default => nil
-      config_param :add_tag_prefix, :string, :default => nil
+      config_param :remove_tag_prefix, :string, default: nil
+      config_param :add_tag_prefix, :string, default: nil
       # TODO tag_transform regexp
       attr_accessor :copy
 
@@ -91,8 +91,8 @@ module Fluent::Plugin
       @match_cache = {}
     end
 
-    config_param :remove_tag_prefix, :string, :default => nil
-    config_param :add_tag_prefix, :string, :default => nil
+    config_param :remove_tag_prefix, :string, default: nil
+    config_param :add_tag_prefix, :string, default: nil
     # TODO tag_transform regexp
 
     attr_reader :routes
