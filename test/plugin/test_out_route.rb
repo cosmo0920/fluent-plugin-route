@@ -1,7 +1,11 @@
 require 'fluent/test'
+require 'fluent/test/driver/output'
 require 'fluent/plugin/out_route'
+require 'fluent/test/helpers'
 
 class RouteOutputTest < Test::Unit::TestCase
+  include Fluent::Test::Helpers
+
   def setup
     Fluent::Test.setup
   end
@@ -25,14 +29,14 @@ class RouteOutputTest < Test::Unit::TestCase
     </route>
   ]
 
-  def create_driver(conf, tag)
-    d = Fluent::Test::OutputTestDriver.new(Fluent::RouteOutput, tag)
+  def create_driver(conf)
+    d = Fluent::Test::Driver::Output.new(Fluent::Plugin::RouteOutput)
     Fluent::Engine.root_agent.define_singleton_method(:find_label) do |label_name|
       obj = Object.new
       obj.define_singleton_method(:event_router){ d.instance.router } # for test...
       obj
     end
-    d.configure(conf, true)
+    d.configure(conf, syntax: :v1)
   end
 
   def test_configure
@@ -40,52 +44,52 @@ class RouteOutputTest < Test::Unit::TestCase
   end
 
   def test_emit_t1
-    d = create_driver(CONFIG, "t.t1.test")
+    d = create_driver(CONFIG)
 
     time = Time.parse("2011-11-11 11:11:11 UTC").to_i
-    d.run do
-      d.emit({"a" => 1}, time)
-      d.emit({"a" => 2}, time)
+    d.run(default_tag: "t.t1.test") do
+      d.feed(time, {"a" => 1})
+      d.feed(time, {"a" => 2})
     end
 
-    emits = d.emits
-    assert_equal 2, emits.size
+    events = d.events
+    assert_equal 2, events.size
 
-    assert_equal ["yay.test", time, {"a" => 1}], emits[0]
-    assert_equal ["yay.test", time, {"a" => 2}], emits[1]
+    assert_equal ["yay.test", time, {"a" => 1}], events[0]
+    assert_equal ["yay.test", time, {"a" => 2}], events[1]
   end
 
   def test_emit_t2
-    d = create_driver(CONFIG, "t.t2.test")
+    d = create_driver(CONFIG)
 
-    time = Time.parse("2011-11-11 11:11:11 UTC").to_i
-    d.run do
-      d.emit({"a" => 1}, time)
-      d.emit({"a" => 2}, time)
+    time = event_time("2011-11-11 11:11:11 UTC")
+    d.run(default_tag: "t.t2.test") do
+      d.feed(time, {"a" => 1})
+      d.feed(time, {"a" => 2})
     end
 
-    emits = d.emits
-    assert_equal 2, emits.size
+    events = d.events
+    assert_equal 2, events.size
 
-    assert_equal ["foo.test", time, {"a" => 1}], emits[0]
-    assert_equal ["foo.test", time, {"a" => 2}], emits[1]
+    assert_equal ["foo.test", time, {"a" => 1}], events[0]
+    assert_equal ["foo.test", time, {"a" => 2}], events[1]
   end
 
   def test_emit_others
-    d = create_driver(CONFIG, "t.t3.test")
+    d = create_driver(CONFIG)
 
     time = Time.parse("2011-11-11 11:11:11 UTC").to_i
-    d.run do
-      d.emit({"a" => 1}, time)
-      d.emit({"a" => 2}, time)
+    d.run(default_tag: "t.t3.test") do
+      d.feed(time, {"a" => 1})
+      d.feed(time, {"a" => 2})
     end
 
-    emits = d.emits
-    assert_equal 4, emits.size
+    events = d.events
+    assert_equal 4, events.size
 
-    assert_equal ["t3.test", time, {"a" => 1}], emits[0]
-    assert_equal ["t3.test", time, {"a" => 1}], emits[1]
-    assert_equal ["t3.test", time, {"a" => 2}], emits[2]
-    assert_equal ["t3.test", time, {"a" => 2}], emits[3]
+    assert_equal ["t3.test", time, {"a" => 1}], events[0]
+    assert_equal ["t3.test", time, {"a" => 1}], events[1]
+    assert_equal ["t3.test", time, {"a" => 2}], events[2]
+    assert_equal ["t3.test", time, {"a" => 2}], events[3]
   end
 end

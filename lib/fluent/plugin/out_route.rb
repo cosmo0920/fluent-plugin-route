@@ -15,14 +15,16 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 #
-require 'fluent/output'
+require 'fluent/plugin/output'
 
-module Fluent
-  class RouteOutput < MultiOutput
-    Plugin.register_output('route', self)
+module Fluent::Plugin
+  class RouteOutput < Output
+    Fluent::Plugin.register_output('route', self)
+
+    helpers :event_emitter
 
     class Route
-      include Configurable
+      include Fluent::Configurable
 
       config_param :remove_tag_prefix, :string, :default => nil
       config_param :add_tag_prefix, :string, :default => nil
@@ -35,7 +37,7 @@ module Fluent
           pattern = '**'
         end
         @router = router
-        @pattern = MatchPattern.create(pattern)
+        @pattern = Fluent::MatchPattern.create(pattern)
         @tag_cache = {}
       end
 
@@ -128,7 +130,7 @@ module Fluent
       }
     end
 
-    def emit(tag, es, chain)
+    def process(tag, es)
       ntag, targets = @match_cache[tag]
       unless targets
         ntag = tag.sub(@prefix_match, @tag_prefix)
@@ -149,10 +151,9 @@ module Fluent
         return
       when 1
         targets.first.emit(ntag, es)
-        chain.next
       else
         unless es.repeatable?
-          m = MultiEventStream.new
+          m = Fluent::MultiEventStream.new
           es.each {|time,record|
             m.add(time, record)
           }
@@ -161,7 +162,6 @@ module Fluent
         targets.each {|t|
           t.emit(ntag, es)
         }
-        chain.next
       end
     end
   end
